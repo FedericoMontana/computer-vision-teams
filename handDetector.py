@@ -75,7 +75,8 @@ class HandDetector:
         return img
 
     # Return the coordinate of a square around the hand's landmarks
-    def get_hand_squared(self, space=0.1, check_limits=True):
+
+    def get_hands_squared(self, space=0.1, correct_limits=True):
 
         squares = []
         if self.results_.multi_hand_landmarks:
@@ -95,10 +96,7 @@ class HandDetector:
                     y_max = y_max + size_y
                     y_min = y_min - size_y
 
-                if check_limits:
-
-                    print(x_min, x_max, y_min, y_max)
-                    print(self.img_.shape)
+                if correct_limits:
                     x_min = x_min if x_min >= 0 else 0
                     y_min = y_min if y_min >= 0 else 0
 
