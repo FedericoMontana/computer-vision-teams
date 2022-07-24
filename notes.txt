@@ -1,1 +1,10 @@
 pip install mediapipe-silicon
+
+si hay error de sklearn, instalar scype y luego skearn de nuevo
+pip install --upgrade --force-reinstall scikit-learn
+
+hay que darle restart al env luego
+
+
+Instalado directamente en el env:
+pip3 install pyautogui

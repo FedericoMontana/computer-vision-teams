@@ -44,13 +44,13 @@ class HandDetector:
 
             hands = self._get_positions()
 
-            n = np.zeros(shape=(len(hands), len(hands[0])))
+            n = np.zeros(shape=(len(hands), 2 * len(hands[0])))
 
             for count, lm in enumerate(hands):
                 x = normalize([[x[0] for x in (n for n in lm.values())]])
                 y = normalize([[x[1] for x in (n for n in lm.values())]])
 
-                n[count] = x + y
+                n[count] = np.concatenate([x, y], axis=1)
 
             return n
 
@@ -75,6 +75,21 @@ class HandDetector:
         return img
 
     # Return the coordinate of a square around the hand's landmarks
+
+    def hand_fits_screen(self, hand_idx=0):
+        squares = self.get_hands_squared(space=0, correct_limits=False)
+
+        x_min, y_min = squares[hand_idx][0]
+        x_max, y_max = squares[hand_idx][1]
+
+        return all(
+            [
+                x_min >= 0,
+                y_min >= 0,
+                x_max <= self.img_.shape[1],
+                y_max <= self.img_.shape[0],
+            ]
+        )
 
     def get_hands_squared(self, space=0.1, correct_limits=True):
 
@@ -109,7 +124,7 @@ class HandDetector:
 
     def transform_square(self, img):
 
-        squares = self.get_hand_squared()
+        squares = self.get_hands_squared()
 
         for s in squares:
             cv2.rectangle(img, s[0], s[1], (0, 255, 0), 2)
