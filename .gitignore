@@ -5,7 +5,7 @@ sandbox*
 public_img/
 *.xls*
 .vscode/*
-notes.txt
+*notes.txt*
 *.hdf5
 *.joblib
 
