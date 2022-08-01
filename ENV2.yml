@@ -1,0 +1,17 @@
+name: env_tf
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.8
+  - tensorflow-deps
+  - jupyterlab
+  - jupyter
+  - opencv
+  - scikit-learn
+  - pip
+  - pandas
+  - keras
+  - python-dateutil
+  - lightgbm
+prefix: /opt/homebrew/Caskroom/miniforge/base/envs/env_tf

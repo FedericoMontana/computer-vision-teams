@@ -6,6 +6,8 @@ public_img/
 *.xls*
 .vscode/*
 notes.txt
+*.hdf5
+*.joblib
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

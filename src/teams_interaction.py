@@ -4,17 +4,8 @@ import os
 from datetime import datetime
 import threading
 
-# this wrapper sucks
-# it will launch as a non blocking thrad the function
-# but it will not allow those functions to run in parallel if
-# there is other running. For that you need to add a lock object
-# in the class (witht the name lock)
-# and a self.lock.release() at the end of the method using this wrapper
-# - the lock / unlock could be implemneted fully in the methods, but
-# - it will made them to be launched all the time (i.e using resources)
-# - adding directly in the decorator will not work as it will relese
-# - immediately
-def thread_nonparallel(func):
+
+def thread(func):
     def wrapper(self, *args, **kwargs):
         th = threading.Thread(target=func, args=(self, *args))
         th.start()
@@ -116,15 +107,15 @@ class TeamsInteractions:
 
         return wrapper
 
-    @thread_nonparallel
+    @thread
     @buttons_control
     def meet_call_click(self):
 
         if self.use_keys_when_possible:
             # It is so fast, we need to give some time so it is not pressed
             # right after
-            time.sleep(2)
             pyautogui.hotkey("command", "shift", "m")
+            time.sleep(1.5)
             return
 
         # There are two images, we need to try if it was mute, or unmute
@@ -133,7 +124,7 @@ class TeamsInteractions:
         except ButtonNotFound:
             self.meet_unmute.click()
 
-    @thread_nonparallel
+    @thread
     @buttons_control
     def chat_send_icon_click(self, icon):
         self.chat_open_emoji.click()
@@ -144,13 +135,13 @@ class TeamsInteractions:
         time.sleep(0.05)
         self.chat_send.click()
 
-    @thread_nonparallel
+    @thread
     @buttons_control
     def meet_send_reaction_click(self, reaction):
 
         if self.use_keys_when_possible and reaction == "raisehand":
             pyautogui.hotkey("command", "shift", "k")
-            time.sleep(2)
+            time.sleep(1.5)
             return
 
         self.meet_open_reactions.click()

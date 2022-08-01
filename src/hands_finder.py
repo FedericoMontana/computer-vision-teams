@@ -4,8 +4,11 @@ import time
 from collections.abc import Iterable
 from sklearn.preprocessing import normalize
 
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
 
-class HandDetector:
+
+class HandsFinder:
     def __init__(self, mode=False, maxHands=2, detectionCon=0.5, trackCon=0.5):
 
         self.hands = mp.solutions.hands.Hands(
@@ -16,24 +19,32 @@ class HandDetector:
         )
 
         self.results_ = None
-        self.img_ = None
 
     def found_hands(self):
         return self.results_.multi_hand_landmarks != None
 
-    def _get_positions(self):
+    def _get_positions(self, img=None, correct_limits=True):
 
         hands = []
 
+        def clamp(n, minn=0, maxn=1):
+            return max(min(maxn, n), minn)
+
         if self.results_.multi_hand_landmarks:
-            for h_k, hand in enumerate(self.results_.multi_hand_landmarks):
+            for hand in self.results_.multi_hand_landmarks:
 
                 lm = {}
                 for l_k, point in enumerate(hand.landmark):
-                    h, w, c = self.img_.shape
-                    cx, cy = int(point.x * w), int(point.y * h)
-                    lm[l_k] = [cx, cy]
+                    if img is not None:
+                        h, w, _ = img.shape
+                        x = clamp(point.x) if correct_limits else point.x
+                        y = clamp(point.y) if correct_limits else point.y
+                        z = point.z
 
+                        lm[l_k] = tuple(map(int, (x * w, y * h, z)))
+
+                    else:
+                        lm[l_k] = (point.x, point.y, point.z)
                 hands.append(lm.copy())
 
         return hands
@@ -54,30 +65,42 @@ class HandDetector:
 
             return n
 
-    def transform_connect_lines(self, img):
+    def transform_connect_lines(self, img, connection_drawing_spec=None):
 
         drawer = mp.solutions.drawing_utils
 
+        if connection_drawing_spec is None:
+            connection_drawing_spec = drawer.DrawingSpec(
+                color=(255, 0, 255), thickness=5, circle_radius=5
+            )
+
         if self.results_.multi_hand_landmarks:
             for hand in self.results_.multi_hand_landmarks:
-                drawer.draw_landmarks(img, hand, mp.solutions.hands.HAND_CONNECTIONS)
+                drawer.draw_landmarks(
+                    img,
+                    hand,
+                    mp.solutions.hands.HAND_CONNECTIONS,
+                    connection_drawing_spec,
+                )
 
         return img
 
     def transform_draw(self, img):
 
-        hands = self._get_positions()
+        hands = self._get_positions(img)
         if self.results_.multi_hand_landmarks:
             for h in hands:
                 for lm in h.values():
-                    cv2.circle(img, (lm[0], lm[1]), 7, (255, 0, 255), cv2.FILLED)
+                    cv2.circle(
+                        img, (lm[0], lm[1]), 7, (255, 0, 255), cv2.FILLED
+                    )
 
         return img
 
     # Return the coordinate of a square around the hand's landmarks
 
-    def hand_fits_screen(self, hand_idx=0):
-        squares = self.get_hands_squared(space=0, correct_limits=False)
+    def hand_fits_screen(self, img, hand_idx=0):
+        squares = self.get_hands_squared(img, space=0, correct_limits=False)
 
         x_min, y_min = squares[hand_idx][0]
         x_max, y_max = squares[hand_idx][1]
@@ -86,21 +109,21 @@ class HandDetector:
             [
                 x_min >= 0,
                 y_min >= 0,
-                x_max <= self.img_.shape[1],
-                y_max <= self.img_.shape[0],
+                x_max <= img.shape[1],
+                y_max <= img.shape[0],
             ]
         )
 
-    def get_hands_squared(self, space=0.1, correct_limits=True):
+    def get_hands_squared(self, img, space=0, correct_limits=True):
 
         squares = []
         if self.results_.multi_hand_landmarks:
-            hands = self._get_positions()
-            for lm in hands:
-                x_max = max([x[0] for x in lm.values()])
-                y_max = max([x[1] for x in lm.values()])
-                x_min = min([x[0] for x in lm.values()])
-                y_min = min([x[1] for x in lm.values()])
+            hands = self._get_positions(img, correct_limits)
+            for hand in hands:
+                x_max = max([x[0] for x in hand.values()])
+                y_max = max([x[1] for x in hand.values()])
+                x_min = min([x[0] for x in hand.values()])
+                y_min = min([x[1] for x in hand.values()])
 
                 if space is not None and space > 0:
                     size_x = int((x_max - x_min) * space)
@@ -115,16 +138,20 @@ class HandDetector:
                     x_min = x_min if x_min >= 0 else 0
                     y_min = y_min if y_min >= 0 else 0
 
-                    x_max = self.img_.shape[1] if x_max >= self.img_.shape[1] else x_max
-                    y_max = self.img_.shape[0] if y_max >= self.img_.shape[0] else y_max
+                    x_max = (
+                        img.shape[1] - 1 if x_max >= img.shape[1] else x_max
+                    )
+                    y_max = (
+                        img.shape[0] - 1 if y_max >= img.shape[0] else y_max
+                    )
 
                 squares.append([(x_min, y_min), (x_max, y_max)])
 
         return squares
 
-    def transform_square(self, img):
+    def transform_square(self, img, space=0):
 
-        squares = self.get_hands_squared()
+        squares = self.get_hands_squared(img, space)
 
         for s in squares:
             cv2.rectangle(img, s[0], s[1], (0, 255, 0), 2)
@@ -135,10 +162,7 @@ class HandDetector:
 
         imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        # TODO ver si se guarda los valores de la imagen qeu interesan
-        # en results_
         self.results_ = self.hands.process(imgRGB)
-        self.img_ = img.copy()
 
 
 import time
@@ -159,7 +183,7 @@ if __name__ == "__main__":
         success, img = cap.read()
 
         detector.fit(img)
-        img = detector.transform_draw(img)
+        img = detector.transform_connect_lines(img)
         # lala = detector._get_positions()
         # print(lala)
         # img = detector.findHands(img)
