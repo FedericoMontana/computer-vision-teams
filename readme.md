@@ -14,4 +14,4 @@ Notebooks 03 grabs the model created, and uses it with your webcam to command Te
 
 
 
-Note that I have created just a few combinations to manage Teams, you can easily extend the Teams class to add more commands, and associate them with whatever gesture you want.
+Note that I have created just a few combinations to manage Teams, you can easily extend the Teams class to add more commands, and associate them with whatever gesture you want..
