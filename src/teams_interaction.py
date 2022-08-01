@@ -86,6 +86,7 @@ class TeamsInteractions:
             "raisehand": Button("teams_img/meet_reaction_raisehand.png"),
         }
 
+    # a poor designed wrapper to avoid core repetition
     def buttons_control(fun):
         def wrapper(self, *args, **kwargs):
 
