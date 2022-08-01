@@ -18,6 +18,7 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+*pycache*
 .vscode/
 .Python
 build/
